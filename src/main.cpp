@@ -49,13 +49,13 @@ const char *mqtt_server = "192.168.1.185";
 const char *mqtt_topic_mensaje = "test/test2/mensajeCam";
 const char *mqtt_topic_temp = "test/test2/temperatura";
 //const char *mqtt_topic_hum = "test/test2/humedad";
-const char *mqtt_topic_pir = "test/test2/pir";
+const char *mqtt_topic_pir = "test/test2/pirMSG";
 const char *mqtt_topic_pirON = "test/test2/pirON";
 //SUB
 const char *mqtt_subtopic_mensaje = "test/test/inESP32CAM";
 //------------------------
 
-//PIR
+//PIR parametros para la gestion del PIR mqtt
 boolean pirSensor;
 char pir[50]; //buffer para almacenar mensajes mqtt
 long int valuePir = 0;
@@ -367,7 +367,9 @@ void mqtt_pir()
     printLocalTime();
     snprintf(pir, sizeof(pir), "Detectado movimiento #%ld  %s", valuePir, tiempoNTP);
     snprintf(pirON, sizeof(pirON), "ON");
-    // blinkLED1.attach(1, callbackTimerLED);
+    digitalWrite(pinLED, HIGH);
+    delay(100);
+    digitalWrite(pinLED, LOW);
   }
   else
   {
@@ -379,7 +381,6 @@ void mqtt_pir()
   Serial.println(pir);
   clientMQ.publish(mqtt_topic_pir, pir);
   clientMQ.publish(mqtt_topic_pirON, pirON);
-  // blinkLED1.detach();
 }
 //Fin Funciones MQTT-----------------------
 
@@ -461,6 +462,15 @@ void setup()
 
 void loop()
 {
+  RESET = digitalRead(resetPin); // Reset button
+  if (RESET == HIGH)
+  {
+    Serial.print("Boton: ");
+    Serial.println(RESET);
+    Serial.println("Restarting ...");
+    delay(1000);
+    ESP.restart();
+  }
 
   pirSensor = digitalRead(pinPIR);
 

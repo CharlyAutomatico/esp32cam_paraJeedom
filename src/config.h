@@ -25,6 +25,10 @@
 #define numPing 6 //contador hasta 6
 #define intPing 5 // segundos cada test ping al GW
 
+//Reset Button
+#define resetPin 12 //pin donce conecta el boton
+int RESET = 0;
+
 #define ENABLE_WEBSERVER          // Web Server
 #define RESOLUTION FRAMESIZE_SVGA // FRAMESIZE_ + QVGA|CIF|VGA|SVGA|XGA|SXGA|UXGA
 #define QUALITY 10                // JPEG quality 10-63 (lower means better quality)
