@@ -3,7 +3,7 @@
 #include "config.h"
 #include <Arduino.h>
 #include "WiFi.h"
-#include <ESP32Ping.h>
+#include <ESP32Ping.h> //ping al GW
 #include "ESPAsyncWebServer.h"
 #include <WiFiClient.h>
 #include "esp_camera.h"
@@ -11,7 +11,7 @@
 #include "soc/soc.h"          //disable brownout problems
 #include "soc/rtc_cntl_reg.h" //disable brownout problems
 #include "time.h"             //para el calculo del tiempo NTP
-#include <PubSubClient.h> //PubSub messages
+#include <PubSubClient.h>     //PubSub messages
 const char *ssid = "MyDeco01";
 const char *password = "segundaplanta";
 
@@ -32,11 +32,16 @@ float correccion_temp = 6;
 
 // Data Timer para enviar los mensajes PUB
 #include <Ticker.h> //Timer
-Ticker publicMQ;      //Objeto Timer
+Ticker publicMQ;    //Objeto Timer
 boolean sentinelSend = false;
-Ticker blinkLED; //Objeto Timer
+Ticker blinkLED;  //Objeto Timer
 Ticker blinkLED1; //Objeto Timer
 //-----------------------
+
+// Ping al Gateway
+Ticker pinging; //objeto Ticker
+const IPAddress remote_ip(192, 168, 1, 1);
+int valuePing = 0;
 
 // Datos MQTT
 //PUB cambiar test x ubicacion
@@ -45,6 +50,7 @@ const char *mqtt_topic_mensaje = "test/test2/mensajeCam";
 const char *mqtt_topic_temp = "test/test2/temperatura";
 //const char *mqtt_topic_hum = "test/test2/humedad";
 const char *mqtt_topic_pir = "test/test2/pir";
+const char *mqtt_topic_pirON = "test/test2/pirON";
 //SUB
 const char *mqtt_subtopic_mensaje = "test/test/inESP32CAM";
 //------------------------
@@ -53,6 +59,7 @@ const char *mqtt_subtopic_mensaje = "test/test/inESP32CAM";
 boolean pirSensor;
 char pir[50]; //buffer para almacenar mensajes mqtt
 long int valuePir = 0;
+char pirON[10];
 
 // Temporizador Detetector PIR
 unsigned long ultimaDeteccionPir = 0;
@@ -73,7 +80,30 @@ long int value = 0;
 char tiempoNTP[25];
 //-----------------------
 
+//Funcion verifica el acceso al Router, si no, reinicia a los
+//6 intentos de 5 segundos cada uno
+void callbackTimerpinger()
+{
+  if (Ping.ping(remote_ip))
+  {
+#ifdef _DEBUG_
+    Serial.println("Router OK");
+#endif
+    valuePing = 0;
+  }
+  else
+  {
+    ++valuePing;
+    Serial.printf("Error Nº %d \n", valuePing);
+    if (valuePing == numPing)
+    {
+      Serial.println("Reinicio ESP");
+      ESP.restart();
+    }
+  }
+}
 
+//Funcion calculo del tiempo ( en formato string)
 void printLocalTime()
 {
   struct tm timeinfo;
@@ -311,7 +341,6 @@ void mqtt_temp()
   // Serial.print(F("%  Temperatura: "));
   // Serial.println(temperatura);
 
-
   static char temperatureTemp[7];
   dtostrf(temperatura, 6, 2, temperatureTemp);
 #ifdef DHT
@@ -337,6 +366,8 @@ void mqtt_pir()
     ++valuePir;
     printLocalTime();
     snprintf(pir, sizeof(pir), "Detectado movimiento #%ld  %s", valuePir, tiempoNTP);
+    sniprintf(pirON, sizeof(pirON), "ON");
+    // blinkLED1.attach(1, callbackTimerLED);
   }
   else
   {
@@ -345,6 +376,8 @@ void mqtt_pir()
   Serial.print("Publish message: ");
   Serial.println(pir);
   clientMQ.publish(mqtt_topic_pir, pir);
+  clientMQ.publish(mqtt_topic_pirON, pirON);
+  // blinkLED1.detach();
 }
 //Fin Funciones MQTT-----------------------
 
@@ -352,13 +385,14 @@ void setup()
 {
 #ifdef _DEBUG_
   Serial.begin(115200);
+  delay(10);
   // Serial.setDebugOutput(true);
   // Serial.println();
 #endif
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
 
-  pinMode(pinLED, OUTPUT); //LED rojo
-  pinMode(pinPIR, INPUT);  //PIR pin
+  pinMode(pinLED, OUTPUT);        //LED rojo
+  pinMode(pinPIR, INPUT);         //PIR pin
   pinMode(LED_BUILTIN, OUTPUT);   // flash LED
   digitalWrite(LED_BUILTIN, LOW); // flash LED
 
@@ -378,12 +412,9 @@ void setup()
   bme.settings.humidOverSample = 1;
   bme.begin();
 #endif
-  // Setup Timer
-publicMQ.attach(intPublicMQTT, callbackTimerMQ);
 
   if (!initCamera())
   {
-
     Serial.printf("Failed to initialize camera...");
     return;
   }
@@ -398,12 +429,18 @@ publicMQ.attach(intPublicMQTT, callbackTimerMQ);
     delay(1000);
   }
 
+  Serial.println();
+  Serial.print("WiFi connected with ip ");
   Serial.println(WiFi.localIP());
+  // Setup Timer
+  publicMQ.attach(intPublicMQTT, callbackTimerMQ);
+  pinging.attach(intPing, callbackTimerpinger);
   blinkLED.detach();
+  digitalWrite(pinLED, LOW);
   //init and get the time
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
   printLocalTime();
-
+  //Servidor WEB para descargar fotos
   server.on("/picture", HTTP_GET, [](AsyncWebServerRequest *request)
             {
               camera_fb_t *frame = NULL;
@@ -419,7 +456,6 @@ publicMQ.attach(intPublicMQTT, callbackTimerMQ);
   clientMQ.setCallback(callback);
   //--------------------------
 }
-
 
 void loop()
 {
@@ -444,7 +480,7 @@ void loop()
     }
   }
 
-   // if WiFi is down, try reconnecting restart ESP
+  // if WiFi is down, try reconnecting restart ESP
   unsigned long currentMillis = millis();
   if ((WiFi.status() != WL_CONNECTED) && (currentMillis - previousMillis >= interval))
   {
@@ -471,3 +507,5 @@ void loop()
     sentinelSend = false;
   }
 }
+//TODO parpadep led con ticker cuaando detecta presencia (sin delay)
+//TODO publicar pirON = OFF cuando hayab pasado 30 segundos desde el ultimo pirON = ON

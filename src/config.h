@@ -13,12 +13,16 @@
 #define BME_ON //Activa  Sensor de temperatura
 
 //Timer send PUB MQTT
-#define intPublicMQTT 30
+#define intPublicMQTT 60 //60 seg envio mensajes MQTT al Broker
 //const byte intPublicMQTT = XX; //execution time in sec
 
 //PIR
 #define pinPIR 13
 //#define pinLed 33
+
+//PING
+#define numPing 6 //contador hasta 6
+#define intPing 5 // segundos cada test ping al GW
 
 #define ENABLE_WEBSERVER          // Web Server
 #define RESOLUTION FRAMESIZE_SVGA // FRAMESIZE_ + QVGA|CIF|VGA|SVGA|XGA|SXGA|UXGA
