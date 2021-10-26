@@ -19,6 +19,7 @@
 //PIR
 #define pinPIR 13
 //#define pinLed 33
+#define pirNoDetect 30000 // 30 segundos sin deteccion
 
 //PING
 #define numPing 6 //contador hasta 6

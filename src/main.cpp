@@ -366,12 +366,14 @@ void mqtt_pir()
     ++valuePir;
     printLocalTime();
     snprintf(pir, sizeof(pir), "Detectado movimiento #%ld  %s", valuePir, tiempoNTP);
-    sniprintf(pirON, sizeof(pirON), "ON");
+    snprintf(pirON, sizeof(pirON), "ON");
     // blinkLED1.attach(1, callbackTimerLED);
   }
   else
   {
-    snprintf(pir, sizeof(pir), "NO detecto movimiento");
+    printLocalTime();
+    snprintf(pir, sizeof(pir), "NO detecto movimiento %s", tiempoNTP);
+    snprintf(pirON, sizeof(pirON), "OFF");
   }
   Serial.print("Publish message: ");
   Serial.println(pir);
@@ -478,6 +480,10 @@ void loop()
       // Marca de tiempo para nueva detección
       ultimaDeteccionPir = millis();
     }
+  }
+  else if ((millis() - ultimaDeteccionPir) == pirNoDetect)
+  {
+    mqtt_pir();
   }
 
   // if WiFi is down, try reconnecting restart ESP
