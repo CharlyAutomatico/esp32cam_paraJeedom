@@ -26,7 +26,7 @@
 #define intPing 5 // segundos cada test ping al GW
 
 //Reset Button
-#define resetPin 12 //pin donce conecta el boton
+#define resetPin 12 //pin doce conecta el boton
 int RESET = 0;
 
 #define ENABLE_WEBSERVER          // Web Server
