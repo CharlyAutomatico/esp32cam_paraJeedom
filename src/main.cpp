@@ -525,3 +525,4 @@ void loop()
 }
 //TODO parpadep led con ticker cuaando detecta presencia (sin delay)
 //TODO publicar pirON = OFF cuando hayab pasado 30 segundos desde el ultimo pirON = ON
+//TODO subscribirse a un topic para ponderar la temperatura
