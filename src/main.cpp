@@ -46,11 +46,11 @@ int valuePing = 0;
 // Datos MQTT
 //PUB cambiar test x ubicacion
 const char *mqtt_server = "192.168.1.185";
-const char *mqtt_topic_mensaje = "test/test2/mensajeCam";
-const char *mqtt_topic_temp = "test/test2/temperatura";
-//const char *mqtt_topic_hum = "test/test2/humedad";
-const char *mqtt_topic_pir = "test/test2/pirMSG";
-const char *mqtt_topic_pirON = "test/test2/pirON";
+const char *mqtt_topic_mensaje = "test/test3/mensajeCam";
+const char *mqtt_topic_temp = "test/test3/temperatura";
+//const char *mqtt_topic_hum = "test/test3/humedad";
+const char *mqtt_topic_pir = "test/test3/pirMSG";
+const char *mqtt_topic_pirON = "test/test3/pirON";
 //SUB
 const char *mqtt_subtopic_mensaje = "test/test/inESP32CAM";
 //------------------------
@@ -523,6 +523,6 @@ void loop()
     sentinelSend = false;
   }
 }
-//TODO parpadep led con ticker cuaando detecta presencia (sin delay)
+//TODO parpadep led con ticker cuaando detecta presencia (sin delay) 
 //TODO publicar pirON = OFF cuando hayab pasado 30 segundos desde el ultimo pirON = ON
 //TODO subscribirse a un topic para ponderar la temperatura
