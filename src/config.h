@@ -1,8 +1,8 @@
-#define _DEBUG_ //debug
+//#define _DEBUG_ // debug
 //#define mDNS_CAM    // activar Nombre DNS
 
 #define LED_BUILTIN 4 // WILL BE USED TO TURN THE LED ON AND OFF - DO NOT MODIFY THIS VALUE (GPIO4)
-#define pinLED 2 //Led rojo
+#define pinLED 2      // Led rojo
 //#define DHT //descomentar si utilizamos el sensor de temperatura DHT22
 #ifdef DHT
 // Data DHT22
@@ -10,29 +10,29 @@
 // #define DHTTYPE DHT22   // DHT 22  (AM2302)
 #endif
 
-#define BME_ON //Activa  Sensor de temperatura
+#define BME_ON // Activa  Sensor de temperatura
 
-//Timer send PUB MQTT
-#define intPublicMQTT 60 //60 seg envio mensajes MQTT al Broker
-//const byte intPublicMQTT = XX; //execution time in sec
+// Timer send PUB MQTT
+#define intPublicMQTT 60 // 60 seg envio mensajes MQTT al Broker
+// const byte intPublicMQTT = XX; //execution time in sec
 
-//PIR
+// PIR
 #define pinPIR 13
 //#define pinLed 33
 #define pirNoDetect 30000 // 30 segundos sin deteccion
 
-//PING
-#define numPing 6 //contador hasta 6
+// PING
+#define numPing 6 // contador hasta 6
 #define intPing 5 // segundos cada test ping al GW
 
-//Reset Button
-#define resetPin 12 //pin doce conecta el boton
+// Reset Button
+#define resetPin 12 // pin doce conecta el boton
 int RESET = 0;
 
 #define ENABLE_WEBSERVER          // Web Server
 #define RESOLUTION FRAMESIZE_SVGA // FRAMESIZE_ + QVGA|CIF|VGA|SVGA|XGA|SXGA|UXGA
 #define QUALITY 10                // JPEG quality 10-63 (lower means better quality)
-#define WSPORT 80                 //Web server port
+#define WSPORT 80                 // Web server port
 
 #define PWDN_GPIO_NUM 32
 #define RESET_GPIO_NUM -1

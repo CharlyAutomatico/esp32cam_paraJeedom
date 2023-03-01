@@ -1,4 +1,4 @@
-//https : //techtutorialsx.com/2020/06/10/esp32-camera-image-server/
+// https : //techtutorialsx.com/2020/06/10/esp32-camera-image-server/
 
 #include "config.h"
 #include <Arduino.h>
@@ -27,37 +27,37 @@ const int daylightOffset_sec = 3600;
 #define I2C_SCL 15 // SCL Connected to GPIO 15
 BME280 bme;
 float temperatura, humedad;
-float correccion_temp = 6;
+float correccion_temp = 0; // ponderado en Jeedom
 #endif
 
 // Data Timer para enviar los mensajes PUB
 #include <Ticker.h> //Timer
-Ticker publicMQ;    //Objeto Timer
+Ticker publicMQ;    // Objeto Timer
 boolean sentinelSend = false;
-Ticker blinkLED;  //Objeto Timer
-Ticker blinkLED1; //Objeto Timer
+Ticker blinkLED;  // Objeto Timer
+Ticker blinkLED1; // Objeto Timer
 //-----------------------
 
 // Ping al Gateway
-Ticker pinging; //objeto Ticker
+Ticker pinging; // objeto Ticker
 const IPAddress remote_ip(192, 168, 1, 1);
 int valuePing = 0;
 
 // Datos MQTT
-//PUB cambiar test x ubicacion
+// PUB cambiar test x ubicacion
 const char *mqtt_server = "192.168.1.185";
-const char *mqtt_topic_mensaje = "test/test3/mensajeCam";
-const char *mqtt_topic_temp = "test/test3/temperatura";
-//const char *mqtt_topic_hum = "test/test3/humedad";
-const char *mqtt_topic_pir = "test/test3/pirMSG";
-const char *mqtt_topic_pirON = "test/test3/pirON";
-//SUB
-const char *mqtt_subtopic_mensaje = "test/test/inESP32CAM";
+const char *mqtt_topic_mensaje = "camara/garage/mensajeCam";
+const char *mqtt_topic_temp = "camara/garage/temperatura";
+const char *mqtt_topic_hum = "camara/garage/humedad";
+const char *mqtt_topic_pir = "camara/garage/pirMSG";
+const char *mqtt_topic_pirON = "camara/garage/pirON";
+// SUB
+const char *mqtt_subtopic_mensaje = "camara/garage/inESP32CAM";
 //------------------------
 
-//PIR parametros para la gestion del PIR mqtt
+// PIR parametros para la gestion del PIR mqtt
 boolean pirSensor;
-char pir[50]; //buffer para almacenar mensajes mqtt
+char pir[50]; // buffer para almacenar mensajes mqtt
 long int valuePir = 0;
 char pirON[10];
 
@@ -65,7 +65,7 @@ char pirON[10];
 unsigned long ultimaDeteccionPir = 0;
 unsigned long tiempoDeteccionPir = 6000;
 
-//WifiReconect = ESP.restart
+// WifiReconect = ESP.restart
 unsigned long previousMillis = 0;
 unsigned long interval = 30000;
 
@@ -73,15 +73,15 @@ unsigned long interval = 30000;
 WiFiClient espClient;
 PubSubClient clientMQ(espClient);
 
-//Parametros para gestion mensajes MQTT PUB
+// Parametros para gestion mensajes MQTT PUB
 #define MSG_BUFFER_SIZE (50)
 char msg[MSG_BUFFER_SIZE];
 long int value = 0;
 char tiempoNTP[25];
 //-----------------------
 
-//Funcion verifica el acceso al Router, si no, reinicia a los
-//6 intentos de 5 segundos cada uno
+// Funcion verifica el acceso al Router, si no, reinicia a los
+// 6 intentos de 5 segundos cada uno
 void callbackTimerpinger()
 {
   if (Ping.ping(remote_ip))
@@ -103,7 +103,7 @@ void callbackTimerpinger()
   }
 }
 
-//Funcion calculo del tiempo ( en formato string)
+// Funcion calculo del tiempo ( en formato string)
 void printLocalTime()
 {
   struct tm timeinfo;
@@ -177,7 +177,7 @@ bool initCamera()
   // {
   //   if (RESOLUTION > FRAMESIZE_SVGA)
   //   {
-  //     config.frame_size = FRAMESIZE_SVGA;
+  //     config.frame_size = FRAMESIZE_VGA;
   //   }
   //   config.jpeg_quality = 12;
   //   config.fb_count = 1;
@@ -218,7 +218,7 @@ bool initCamera()
   return true;
 }
 
-//Funcion TICKER enviar MQTT PUB cada x segundos (seg -> definido en intPublicMQTT)
+// Funcion TICKER enviar MQTT PUB cada x segundos (seg -> definido en intPublicMQTT)
 void callbackTimerMQ()
 {
   sentinelSend = true;
@@ -246,18 +246,18 @@ void callback(char *topic, byte *payload, unsigned int length)
   }
   Serial.println();
 
-  //Switch on the LED if an 1 was received as first character
+  // Switch on the LED if an 1 was received as first character
   if (messageMQ == "flashON")
   {
-    digitalWrite(LED_BUILTIN, HIGH); //Flash LED
+    digitalWrite(LED_BUILTIN, HIGH); // Flash LED
     Serial.println("flashON");
-    //    digitalWrite(pinONPIR, HIGH);
+    digitalWrite(LED_BUILTIN, HIGH);
   }
   else if (messageMQ == "flashOFF")
   {
     digitalWrite(LED_BUILTIN, LOW);
     Serial.println("flashOFF");
-    //    digitalWrite(pinONPIR, LOW);
+    digitalWrite(LED_BUILTIN, LOW);
   }
   else if (messageMQ == "reset")
   {
@@ -297,7 +297,7 @@ void reconnect()
 
 void mqtt_mensaje()
 {
-  //mqtt_topic_mensaje
+  // mqtt_topic_mensaje
   ++value;
   printLocalTime();
   snprintf(msg, MSG_BUFFER_SIZE, "hello test esp32Cam #%ld  %s", value, tiempoNTP);
@@ -311,8 +311,8 @@ void mqtt_mensaje()
 
 void mqtt_temp()
 {
-  //mqtt_topic_temp
-  //mqtt_topic_hum
+  // mqtt_topic_temp
+  // mqtt_topic_hum
 #ifdef DHT
   // Read temperature as Celsius (the default) & Humidity
   humedad = dht.getHumidity();
@@ -324,6 +324,7 @@ void mqtt_temp()
 #ifdef BME_ON
   temperatura = bme.readTempC();
   temperatura = temperatura - correccion_temp;
+  humedad = bme.readFloatHumidity();
 
   // Check if any reads failed and exit early (to try again).
   if (isnan(temperatura))
@@ -343,18 +344,25 @@ void mqtt_temp()
 
   static char temperatureTemp[7];
   dtostrf(temperatura, 6, 2, temperatureTemp);
+  static char humidity[7];
+  dtostrf(humedad, 6, 0, humidity);
+
 #ifdef DHT
-  static char humidityTemp[7];
-  dtostrf(humedad, 6, 2, humidityTemp);
+  static char humidity[7];
+  dtostrf(humedad, 6, 2, humidity);
 #endif
 #ifdef _DEBUG_
   Serial.print("Publish message: ");
   Serial.print(temperatureTemp);
-  Serial.println(" C");
+  Serial.println(" °C");
+  Serial.print("Publish message: ");
+  Serial.print(humidity);
+  Serial.println(" %");
 #endif
   clientMQ.publish(mqtt_topic_temp, temperatureTemp);
+  clientMQ.publish(mqtt_topic_hum, humidity);
 #ifdef DHT
-  clientMQ.publish(mqtt_topic_hum, humidityTemp);
+  clientMQ.publish(mqtt_topic_hum, humidity);
 #endif
 #endif
 }
@@ -382,7 +390,7 @@ void mqtt_pir()
   clientMQ.publish(mqtt_topic_pir, pir);
   clientMQ.publish(mqtt_topic_pirON, pirON);
 }
-//Fin Funciones MQTT-----------------------
+// Fin Funciones MQTT-----------------------
 
 void setup()
 {
@@ -392,10 +400,10 @@ void setup()
   // Serial.setDebugOutput(true);
   // Serial.println();
 #endif
-  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
+  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); // disable brownout detector
 
-  pinMode(pinLED, OUTPUT);        //LED rojo
-  pinMode(pinPIR, INPUT);         //PIR pin
+  pinMode(pinLED, OUTPUT);        // LED rojo
+  pinMode(pinPIR, INPUT_PULLUP);  // PIR pin
   pinMode(LED_BUILTIN, OUTPUT);   // flash LED
   digitalWrite(LED_BUILTIN, LOW); // flash LED
 
@@ -421,9 +429,9 @@ void setup()
     Serial.printf("Failed to initialize camera...");
     return;
   }
-  //Iniciamos conexion WIFI
+  // Iniciamos conexion WIFI
   WiFi.begin(ssid, password);
-  //iniciamos TemporizadorLED
+  // iniciamos TemporizadorLED
   blinkLED.attach(0.2, callbackTimerLED);
 
   while (WiFi.status() != WL_CONNECTED)
@@ -437,20 +445,19 @@ void setup()
   Serial.println(WiFi.localIP());
   // Setup Timer
   publicMQ.attach(intPublicMQTT, callbackTimerMQ);
-  pinging.attach(intPing, callbackTimerpinger);
+  // pinging.attach(intPing, callbackTimerpinger); //comentado por interferencias con el pir
   blinkLED.detach();
   digitalWrite(pinLED, LOW);
-  //init and get the time
+  // init and get the time
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
   printLocalTime();
-  //Servidor WEB para descargar fotos
+  // Servidor WEB para descargar fotos
   server.on("/picture", HTTP_GET, [](AsyncWebServerRequest *request)
             {
               camera_fb_t *frame = NULL;
               frame = esp_camera_fb_get();
               request->send_P(200, "image/jpeg", (const uint8_t *)frame->buf, frame->len);
-              esp_camera_fb_return(frame);
-            });
+              esp_camera_fb_return(frame); });
 
   server.begin();
 
@@ -473,6 +480,7 @@ void loop()
   }
 
   pirSensor = digitalRead(pinPIR);
+  // Serial.print(pirSensor);
 
   if (pirSensor)
   {
@@ -514,7 +522,7 @@ void loop()
   }
   // Procesamos los mensajes entrantes y  ejecutará la función callback que hayamos configurado
   clientMQ.loop();
-  //Si ha pasado el tiempo marcado enviamos la temperatura
+  // Si ha pasado el tiempo marcado enviamos la temperatura
   if (sentinelSend)
   {
     mqtt_mensaje();
@@ -523,6 +531,9 @@ void loop()
     sentinelSend = false;
   }
 }
-//TODO parpadep led con ticker cuaando detecta presencia (sin delay) 
-//TODO publicar pirON = OFF cuando hayab pasado 30 segundos desde el ultimo pirON = ON
-//TODO subscribirse a un topic para ponderar la temperatura
+// OK //TODO parpadep led con ticker cuaando detecta presencia (sin delay)
+// OK //TODO publicar pirON = OFF cuando hayab pasado 30 segundos desde el ultimo pirON = ON
+// NOK// TODO subscribirse a un topic para ponderar la temperatura
+// OK //TODO corregir el pin para el fkash
+// TODO ver por que no medi la humedad
+// OK// TODO intPublicMQTT cambiar de 60 seg a 5 minutos
